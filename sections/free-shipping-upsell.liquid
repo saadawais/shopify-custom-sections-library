@@ -1,0 +1,201 @@
+{% comment %}
+  Section: Free Shipping Goal Bar with Upsell
+  Replaces paid AOV/shipping bar apps.
+{% endcomment %}
+
+{%- liquid
+  assign threshold_cents = section.settings.shipping_threshold | times: 100
+  assign current_total = cart.total_price
+  assign remaining_cents = threshold_cents | minus: current_total
+  
+  if current_total >= threshold_cents
+    assign percent = 100
+    assign is_unlocked = true
+  else
+    assign percent = current_total | times: 100.0 | divided_by: threshold_cents
+    assign is_unlocked = false
+  endif
+-%}
+
+<div class="shipping-bar-wrapper" id="shipping-bar-{{ section.id }}" data-threshold="{{ threshold_cents }}">
+  <div class="shipping-bar-container">
+    <div class="shipping-bar-message">
+      {% if is_unlocked %}
+        <span class="unlocked-text">{{ section.settings.unlocked_message }}</span>
+      {% else %}
+        <span>{{ section.settings.progress_message_start }} <strong>{{ remaining_cents | money }}</strong> {{ section.settings.progress_message_end }}</span>
+      {% endif %}
+    </div>
+
+    <div class="shipping-progress-track">
+      <div class="shipping-progress-fill" style="width: {{ percent }}%;"></div>
+    </div>
+
+    {%- if section.settings.upsell_product != blank and is_unlocked == false -%}
+      {%- assign upsell = section.settings.upsell_product -%}
+      <div class="shipping-upsell-card">
+        <div class="upsell-info">
+          {%- if upsell.featured_image -%}
+            <img src="{{ upsell.featured_image | image_url: width: 80 }}" alt="{{ upsell.title }}" width="40" height="40" loading="lazy">
+          {%- endif -%}
+          <div>
+            <p class="upsell-title">{{ upsell.title }}</p>
+            <p class="upsell-price">{{ upsell.price | money }}</p>
+          </div>
+        </div>
+        <button type="button" class="upsell-btn" data-variant-id="{{ upsell.selected_or_first_available_variant.id }}" onclick="addUpsellToCart(this)">
+          + Add
+        </button>
+      </div>
+    {%- endif -%}
+  </div>
+</div>
+
+<style>
+  .shipping-bar-wrapper {
+    background-color: {{ section.settings.bg_color }};
+    color: {{ section.settings.text_color }};
+    padding: 16px 20px;
+    border-radius: 8px;
+    margin: 15px auto;
+    max-width: 600px;
+    font-family: inherit;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
+  .shipping-bar-message {
+    text-align: center;
+    font-size: 14px;
+    margin-bottom: 10px;
+  }
+  .unlocked-text {
+    color: #10b981;
+    font-weight: 700;
+  }
+  .shipping-progress-track {
+    background: #e5e7eb;
+    height: 8px;
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+  }
+  .shipping-progress-fill {
+    background: {{ section.settings.accent_color }};
+    height: 100%;
+    transition: width 0.4s ease-in-out;
+    border-radius: 999px;
+  }
+  .shipping-upsell-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #ffffff;
+    border: 1px solid #f3f4f6;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-top: 12px;
+    color: #1f2937;
+  }
+  .shipping-upsell-card img {
+    border-radius: 4px;
+    object-fit: cover;
+    margin-right: 10px;
+  }
+  .upsell-info { display: flex; align-items: center; }
+  .upsell-title { font-size: 13px; font-weight: 600; margin: 0; }
+  .upsell-price { font-size: 12px; color: #6b7280; margin: 0; }
+  .upsell-btn {
+    background: {{ section.settings.accent_color }};
+    color: #fff;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .upsell-btn:hover { opacity: 0.9; }
+</style>
+
+<script>
+  function addUpsellToCart(btn) {
+    const variantId = btn.getAttribute('data-variant-id');
+    btn.disabled = true;
+    btn.innerText = 'Adding...';
+
+    fetch('/cart/add.js', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: [{ id: Number(variantId), quantity: 1 }] })
+    })
+    .then(res => res.json())
+    .then(() => {
+      window.location.reload(); // Refreshes to update totals and unlocks instantly
+    })
+    .catch(err => {
+      console.error(err);
+      btn.disabled = false;
+      btn.innerText = '+ Add';
+    });
+  }
+</script>
+
+{% schema %}
+{
+  "name": "Free Shipping & Upsell",
+  "settings": [
+    {
+      "type": "number",
+      "id": "shipping_threshold",
+      "label": "Free Shipping Threshold (in store dollars)",
+      "default": 75
+    },
+    {
+      "type": "text",
+      "id": "progress_message_start",
+      "label": "Progress Message Start",
+      "default": "Add"
+    },
+    {
+      "type": "text",
+      "id": "progress_message_end",
+      "label": "Progress Message End",
+      "default": "more to unlock FREE Shipping! 🚚"
+    },
+    {
+      "type": "text",
+      "id": "unlocked_message",
+      "label": "Unlocked Message",
+      "default": "🎉 Congratulations! You unlocked Free Shipping!"
+    },
+    {
+      "type": "product",
+      "id": "upsell_product",
+      "label": "1-Click Upsell Product"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background Color",
+      "default": "#f9fafb"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text Color",
+      "default": "#111827"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Bar Accent Color",
+      "default": "#3b82f6"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Free Shipping & Upsell"
+    }
+  ]
+}
+{% endschema %}
