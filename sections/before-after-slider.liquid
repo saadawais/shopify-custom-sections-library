@@ -1,0 +1,251 @@
+{% comment %}
+  Section: Native Before/After Comparison Slider
+  Zero external dependencies. Touch and Mouse enabled.
+{% endcomment %}
+
+<div class="before-after-section" id="slider-{{ section.id }}">
+  <div class="before-after-header">
+    {% if section.settings.heading != blank %}
+      <h2>{{ section.settings.heading }}</h2>
+    {% endif %}
+    {% if section.settings.subheading != blank %}
+      <p>{{ section.settings.subheading }}</p>
+    {% endif %}
+  </div>
+
+  <div class="comparison-container" style="max-width: {{ section.settings.max_width }}px;">
+    <div class="comparison-slider" data-starting-position="{{ section.settings.starting_position }}">
+      <!-- Before Image (Base) -->
+      <div class="image-wrapper before-image">
+        {% if section.settings.before_image != blank %}
+          {{ section.settings.before_image | image_tag: loading: 'lazy', class: 'slider-img' }}
+        {% else %}
+          {{ 'lifestyle-1' | placeholder_svg_tag: 'slider-img placeholder' }}
+        {% endif %}
+        <span class="slider-badge badge-before">{{ section.settings.before_label }}</span>
+      </div>
+
+      <!-- After Image (Clipped Overlay) -->
+      <div class="image-wrapper after-image" style="width: {{ section.settings.starting_position }}%;">
+        {% if section.settings.after_image != blank %}
+          {{ section.settings.after_image | image_tag: loading: 'lazy', class: 'slider-img' }}
+        {% else %}
+          {{ 'lifestyle-2' | placeholder_svg_tag: 'slider-img placeholder' }}
+        {% endif %}
+        <span class="slider-badge badge-after">{{ section.settings.after_label }}</span>
+      </div>
+
+      <!-- Draggable Handle Divider -->
+      <div class="slider-handle" style="left: {{ section.settings.starting_position }}%;">
+        <div class="handle-line"></div>
+        <div class="handle-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 18 9 12 15 6"></polyline>
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </div>
+        <div class="handle-line"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .before-after-section {
+    padding: 40px 20px;
+    font-family: inherit;
+  }
+  .before-after-header {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .before-after-header h2 {
+    margin: 0 0 8px;
+    font-size: 28px;
+  }
+  .before-after-header p {
+    color: #6b7280;
+    margin: 0;
+  }
+  .comparison-container {
+    margin: 0 auto;
+    position: relative;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .comparison-slider {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border-radius: 12px;
+    cursor: ew-resize;
+  }
+  .image-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+  .before-image {
+    width: 100%;
+  }
+  .slider-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+    display: block;
+  }
+  .slider-badge {
+    position: absolute;
+    bottom: 16px;
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(4px);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 4px;
+    pointer-events: none;
+  }
+  .badge-before { right: 16px; }
+  .badge-after { left: 16px; }
+
+  /* Handle */
+  .slider-handle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+  }
+  .handle-line {
+    flex-grow: 1;
+    width: 2px;
+    background: #ffffff;
+    box-shadow: 0 0 4px rgba(0,0,0,0.4);
+  }
+  .handle-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .handle-circle svg {
+    width: 16px;
+    height: 16px;
+    color: #111827;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const section = document.getElementById('slider-{{ section.id }}');
+    const slider = section.querySelector('.comparison-slider');
+    const afterImage = section.querySelector('.after-image');
+    const handle = section.querySelector('.slider-handle');
+
+    let isDown = false;
+
+    function moveSlider(clientX) {
+      const rect = slider.getBoundingClientRect();
+      let x = clientX - rect.left;
+      if (x < 0) x = 0;
+      if (x > rect.width) x = rect.width;
+      const percent = (x / rect.width) * 100;
+      afterImage.style.width = percent + '%';
+      handle.style.left = percent + '%';
+    }
+
+    slider.addEventListener('mousedown', () => isDown = true);
+    window.addEventListener('mouseup', () => isDown = false);
+    slider.addEventListener('mousemove', (e) => {
+      if (!isDown) return;
+      moveSlider(e.clientX);
+    });
+
+    slider.addEventListener('touchstart', () => isDown = true, { passive: true });
+    window.addEventListener('touchend', () => isDown = false);
+    slider.addEventListener('touchmove', (e) => {
+      if (!isDown) return;
+      moveSlider(e.touches[0].clientX);
+    }, { passive: true });
+  });
+</script>
+
+{% schema %}
+{
+  "name": "Before / After Slider",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Real Results"
+    },
+    {
+      "type": "text",
+      "id": "subheading",
+      "label": "Subheading",
+      "default": "Drag the slider to compare before and after."
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "min": 600,
+      "max": 1200,
+      "step": 50,
+      "unit": "px",
+      "label": "Container Max Width",
+      "default": 850
+    },
+    {
+      "type": "range",
+      "id": "starting_position",
+      "min": 20,
+      "max": 80,
+      "step": 5,
+      "unit": "%",
+      "label": "Starting Handle Position",
+      "default": 50
+    },
+    {
+      "type": "image_picker",
+      "id": "before_image",
+      "label": "Before Image"
+    },
+    {
+      "type": "text",
+      "id": "before_label",
+      "label": "Before Label",
+      "default": "BEFORE"
+    },
+    {
+      "type": "image_picker",
+      "id": "after_image",
+      "label": "After Image"
+    },
+    {
+      "type": "text",
+      "id": "after_label",
+      "label": "After Label",
+      "default": "AFTER"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Before / After Slider"
+    }
+  ]
+}
+{% endschema %}
